@@ -1,0 +1,267 @@
+---
+title: "Iterating well with purrr! - Shannon Pileggi"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+## libraries
+
+```{r}
+library(tidyverse)
+library(gapminder)
+library(repurrrsive)
+```
+
+## What am I doing? Are there mistakes?
+
+```{r}
+africa <- gapminder[gapminder$continent == "Africa", ]
+africa_mm <-  max(africa$lifeExp) - min(africa$lifeExp)
+
+americas <- gapminder[gapminder$continent == "Americas", ]
+americas_mm <-  max(americas$lifeExp) - min(americas$lifeExp)
+
+asia <- gapminder[gapminder$continent == "Asia", ]
+asia_mm <-  max(asia$lifeExp) - min(asia$lifeExp)
+
+
+europe <- gapminder[gapminder$continent == "Europe", ]
+europe_mm <-  max(europe$lifeExp) - min(europe$lifeExp)
+
+
+oceania <- gapminder[gapminder$continent == "Oceania", ]
+oceania_mm <-  max(oceania$lifeExp) - min(oceania$lifeExp)
+
+cbind(
+  continent = c("Africa", "Americas", "Asia", "Europe", "Oceania"), 
+  max_minus_min = c(africa_mm, americas_mm, asia_mm, europe_mm, oceania_mm)
+)
+
+```
+
+## An alternative solution
+
+```{r}
+gapminder |> 
+  summarize(max_minus_min = max(lifeExp) - min(lifeExp), .by = continent)
+```
+
+## More iterations
+
+```{r}
+year <- 2017:2021
+location <- c("Orlando", "San Diego", "Austin", "San Francisco", "remote")
+conf <- rep_len(" ", length(year))
+for (i in seq_along(conf)){
+  conf[i] <- paste0("The ", year[i], " R Studio Conference was in ", location[i], ".")
+}
+conf
+```
+
+## can you think of other ways to do this
+
+```{r}
+year <- 2017:2021
+location <- c("Orlando", "San Diego", "Austin", "San Francisco", "remote")
+paste0("The ", year, " R Studio Conference was in ", location, ".")
+```
+
+## also we can use glue function
+
+```{r}
+glue::glue("The {year} RStudio Conference was in {location}.")
+```
+
+some function in R are vectorized which means they will operate on each element on a vector and they will take care of iteration for you.
+
+## but what if you have really iterate, purrr is here for us.
+
+## purrr vs apply
+
+-   purrr is an alternative to "apply" functions.
+-   purrr::map() \~ base::lappy()
+
+```{r}
+help(package = "repurrrsive")
+
+# it has various datasets related to Game of Thrones and Star Wars Universe such as got_chars, 
+```
+
+1.  How many elements are in got_chars?
+2.  Who is the 9th person listed in got_chars? What informaiton is given for this person?
+3.  What is the difference between got_chars\[9\] and got_chars\[\[9\]\]
+
+```{r}
+View(got_chars)
+str(got_chars)
+length(got_chars)
+str(got_chars[1])
+
+got_chars[[9]] # returns the actual contents of the list
+got_chars[9]  # returns sublists 
+```
+
+``` R
+purrr::map(.x, .f, ...)
+```
+
+for every element .x do .f
+
+purrr:::map() is a nice way to write a for loop.
+
+### How many aliases does each GoT character have? 
+
+map(got_chars, .f = ??)
+
+### Workflow
+
+1.   Do it for one element
+
+2.  Find the general recipe
+
+3.  Drop the map() to do for all
+
+```{r}
+got_chars[[9]]
+# and the way we will extract the aliases are 
+got_chars[[9]][["aliases"]] 
+# and if want to know the number of aliases we have to wrap all of this in lengh function 
+length(got_chars[[9]][["aliases"]])
+# now we see that we have 11 aliases
+
+```
+
+```{r}
+got_chars[[13]]
+# and the way we will extract the aliases are 
+got_chars[[13]][["aliases"]] 
+# and if want to know the number of aliases we have to wrap all of this in lengh function 
+length(got_chars[[13]][["aliases"]])
+# now we see that we have 11 aliases
+```
+
+now lets generalize this with recipe
+
+```{r}
+.x <- got_chars[[13]]
+length(.x[["aliases"]])
+
+# so now we write the map function 
+map(got_chars, ~length(.x[["aliases"]]))
+```
+
+![](images/clipboard-1234988371.png)
+
+![](images/clipboard-4083820855.png)
+
+```{r}
+map(got_chars, ~ length(.x[["titles"]]))
+map(got_chars, ~length(.x[["allegiances"]]))
+map(sw_people, ~length(.x[["vehicles"]]))
+map(sw_people, ~length(.x[["starships"]]))
+```
+
+![](images/clipboard-3615063402.png)
+
+![](images/clipboard-2123741075.png)
+
+```{r}
+map_chr(got_chars, ~.x[["name"]])
+map_chr(sw_people, ~.x[["name"]])
+map_chr(sw_people, ~.x[["hair_color"]])
+map_lgl(got_chars, ~.x[["alive"]])
+map_lgl(sw_people, ~.x[["gender"]] == "female")
+map_chr(sw_people, ~.x[["mass"]])
+```
+
+![](images/clipboard-3407499884.png)
+
+![](images/clipboard-327417632.png)
+
+![](images/clipboard-2338259104.png)
+
+![**all above four functions gives the exact results**](images/clipboard-1992041272.png)
+
+![](images/clipboard-2741323340.png)
+
+```{r}
+map_chr(got_chars, 15) # if this doesnt work use the below
+map(got_chars, 15)
+map_chr(sw_people, "birth_year")
+map_chr(sw_people, 7)
+map_chr(sw_vehicles, "cargo_capacity" )
+map_chr(sw_vehicles, 9 )
+map_chr(sw_species, "eye_colors" )
+# see below which is getting caused by null in some of values
+map_chr(sw_vehicles, "pilots") # so just use map to see whats inside
+map(sw_vehicles, "pilots")
+```
+
+![](images/clipboard-2516629381.png)
+
+![](images/clipboard-484331562.png)
+
+## using .default value
+
+```{r}
+map(sw_vehicles, "pilots", .default = NA)
+```
+
+## select first element in case not all elements are of length 1
+
+```{r}
+map_chr(sw_vehicles, list("pilots", 1), .default = NA)
+```
+
+![](images/clipboard-1346277427.png)
+
+![](images/clipboard-2341833097.png)
+
+to find the names we need to crate a named list
+
+```{r}
+got_names <- map_chr(got_chars, "name")
+got_chars_named <- set_names(got_chars, got_names)
+View(got_chars_named)
+```
+
+```{r}
+# so if we do this, we get the names of who is alive and who is not
+map_lgl(got_chars_named, "alive")
+# this also works well
+map(got_chars_named, "alive")
+```
+
+![](images/clipboard-2802540516.png)
+
+## Example: Name propagation
+
+### with tibble::enframe(), a named list coverts to a data frame with names and list-column
+
+### 
+
+```{r}
+allegiances <- map(got_chars_named, "allegiances")
+tibble::enframe(allegiances, value = "allegiances")
+```
+
+![](images/clipboard-35819399.png)
+
+![](images/clipboard-1554951517.png)
+
+![](images/clipboard-1554951517.png)
+
+![](images/clipboard-1665280878.png)
+
+![](images/clipboard-3381616459.png)
+
+![](images/clipboard-3447844145.png)
+
+![](images/clipboard-354237987.png)
+
+![](images/clipboard-2742572496.png)
+
+![](images/clipboard-1419131827.png)
+
+![](images/clipboard-3430302659.png)

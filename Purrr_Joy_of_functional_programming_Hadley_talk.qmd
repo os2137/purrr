@@ -1,0 +1,95 @@
+---
+title: "Purrr_Joy_of_functional_programming_Hadley_talk"
+format: html
+editor: visual
+---
+
+## Joy of funcitonal programming with Purrr
+
+Functional programming can b used at all stages of data science
+
+1.  Importing data from multiple widly spreadsheets.
+2.  Tidying that data
+3.  Transforming that data
+4.  Visualizing that data
+5.  Modelling that data
+6.  Communicate: generating the multiple reports
+
+imagine we want to read a bunch of csv files
+
+# Find all the csv files in the current directory
+
+```{r}
+# Find all the csv files in the current directory
+paths <- dir(pattern  = "\\.csv$")
+
+# And read them in as data frames
+data <- vector("list", length(paths))
+for (i in seq_along(paths)){
+  data[[i]] <- read.csv(paths[[i]])
+}
+
+```
+
+## 
+
+```{r}
+library(purrr)
+# Three is nothing wrong wih using a loop
+# But the FP equivalent is much shorter
+data <- map(paths, read.csv)
+
+# And has convenient extensions
+data <- map_dfr(paths, read.csv, id = "path")
+```
+
+## Why not for loops
+
+cup cakes analogy with various types of cupcakes where the recipe is 95% same so how we can generalize the process.
+
+```{r}
+mtcars
+out1 <- vector("double", ncol(mtcars))
+
+for (i in seq_along(mtcars)){
+  out1[[i]] <- mean(mtcars[[i]], na.rm = TRUE)
+}
+```
+
+```{r}
+out2 <- vector("double", ncol(mtcars))
+
+for (i in seq_along(mtcars)){
+  out2[[i]] <- median(mtcars[[i]], na.rm = T)
+}
+```
+
+what does these foor loops do , how r they same and how r these different.
+
+-   we are comupting some summarize, the first one is computing mean and the 2nd for loop calculates the median.
+
+-   here in the calculation process we are weighing the objects more i.e. mtcars than the action i.e. calculating mean and median.
+
+-   The functional programming weighs action and object equally
+
+```{r}
+out1 <- map_dbl(mtcars, mean, na.rm = TRUE)
+out2 <- map_dbl(mtcars, median, na.rm = TRUE)
+```
+
+```{r}
+# we can also combine this with pipe
+
+out1 <- mtcars |> map_dbl(mean, na.rm = TRUE)
+out2 <- mtcars |> map_dbl(median, na.rm = TRUE)
+```
+
+which is particularly important for harder problems
+
+```{r}
+library(tidyverse)
+diamonds |>
+  group_by(diamonds$color) |> 
+  map(~lm(log(price) ~ log(carat), .x)) |> 
+  map_dfr(broom::tidy, .id = "color")
+```
